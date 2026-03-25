@@ -1,0 +1,20 @@
+{
+  "short_name": "Busca Pro",
+  "name": "Busca Pro - Marketplace de Construção",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/buscapro/192/192",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://picsum.photos/seed/buscapro/512/512",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#9333ea",
+  "background_color": "#ffffff"
+}

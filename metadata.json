@@ -1,0 +1,9 @@
+{
+  "name": "Busca Pro",
+  "description": "Marketplace de serviços e produtos com portfólio social, geolocalização e agenda de contatos.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ]
+}
