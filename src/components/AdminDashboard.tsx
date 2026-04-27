@@ -33,7 +33,9 @@ import {
   ChevronRight,
   Info,
   Image as ImageIcon,
-  Type
+  Type,
+  Menu,
+  User,
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -111,6 +113,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       user.username.toLowerCase().includes(messagingSearchQuery.toLowerCase());
     return matchesCategory && matchesRating && matchesPlan && matchesSearch;
   });
+
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleSaveSettings = () => {
     onUpdateSettings(localSettings);
@@ -263,12 +268,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-[200] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-0 md:p-8"
     >
-      <div className="bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-zinc-200">
+      <div className="bg-white w-full max-w-7xl h-full md:h-[90vh] rounded-none md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-zinc-200">
+        
+        {/* Mobile Header Toggle */}
+        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-100 relative z-50">
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
+              style={{ backgroundColor: 'var(--primary-color)' }}
+            >
+              <Shield className="w-4 h-4" />
+            </div>
+            <span className="font-black text-xs uppercase tracking-tight">Painel Admin</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
         {/* Sidebar */}
-        <aside className="w-full md:w-64 bg-zinc-50 border-r border-zinc-200 flex flex-col relative max-h-[50vh] md:max-h-none">
-          <div className="p-6 border-b border-zinc-200 bg-white md:bg-transparent">
+        <aside className={cn(
+          "bg-zinc-50 border-r border-zinc-200 flex flex-col transition-all duration-300 z-[60]",
+          "fixed inset-0 md:relative md:inset-auto w-full md:w-72",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}>
+          {/* Mobile Overlay */}
+          {isSidebarOpen && (
+            <div 
+              className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[-1]" 
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          <div className="p-6 border-b border-zinc-200 bg-white md:bg-zinc-50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div 
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
@@ -278,9 +323,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <div>
                 <h2 className="font-black text-zinc-900 tracking-tight">Painel Admin</h2>
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Manutenção</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">v2.4.0 (Stable)</p>
               </div>
             </div>
+            <button className="md:hidden" onClick={() => setIsSidebarOpen(false)}>
+              <X className="w-6 h-6 text-zinc-400" />
+            </button>
           </div>
 
           <nav className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
@@ -513,21 +561,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </AnimatePresence>
             </div>
           </nav>
+          <div className="p-4 border-t border-zinc-200 bg-white md:bg-zinc-50">
+            <div className="p-3 bg-zinc-50 md:bg-white rounded-2xl border border-zinc-200 md:border-zinc-100 flex items-center gap-3 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-black text-zinc-900 truncate uppercase tracking-tighter">Sessão Admin</p>
+                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest truncate">Acesso Permitido</p>
+              </div>
+            </div>
+          </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-8 bg-white custom-scrollbar">
-          <div className="max-w-3xl mx-auto">
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-12 custom-scrollbar bg-white">
+          <div className="max-w-5xl mx-auto">
             {activeTab === 'approvals' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <header className="flex items-center justify-between">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   <div>
-                    <h3 className="text-2xl font-black text-zinc-900 tracking-tight">Aprovações Pendentes</h3>
-                    <p className="text-zinc-500 text-sm">Analise e aprove novos perfis de profissionais.</p>
+                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight">Aprovações Pendentes</h3>
+                    <p className="text-zinc-500 text-sm font-medium">Analise e aprove novos perfis de profissionais.</p>
                   </div>
-                  <div className="bg-zinc-100 px-4 py-2 rounded-2xl border border-zinc-200">
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Total Pendente: </span>
-                    <span className="text-sm font-black text-purple-600">{users.filter(u => u.status === 'pending').length}</span>
+                  <div className="bg-zinc-100 px-6 py-3 rounded-2xl border border-zinc-200 flex items-center gap-3">
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Pendente</span>
+                    <span className="text-lg font-black text-purple-600">{users.filter(u => u.status === 'pending').length}</span>
                   </div>
                 </header>
 
@@ -1517,11 +1576,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <header>
                   <h3 className="text-2xl font-black text-zinc-900 tracking-tight">Banco de Dados</h3>
-                  <p className="text-zinc-500 text-sm">Gerenciamento e otimização de dados.</p>
+                  <p className="text-zinc-500 text-sm">Gerenciamento e otimização de dados da plataforma.</p>
                 </header>
-                <div className="p-12 bg-zinc-50 rounded-[2rem] border border-zinc-200 border-dashed text-center">
-                  <Database className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-                  <p className="text-zinc-400 font-bold italic">Módulo de banco de dados em desenvolvimento.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white border-2 border-zinc-100 rounded-3xl p-8 space-y-6 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+                      <RefreshCw className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-black text-zinc-900 uppercase tracking-tight">Popular Banco de Dados</h4>
+                      <p className="text-zinc-500 text-sm mt-1">
+                        Cria automaticamente 3 usuários profissionais para cada categoria, com anúncios e avaliações realistas.
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Deseja popular o banco de dados agora? Isso criará novos usuários em todas as categorias.')) {
+                          setIsSeeding(true);
+                          try {
+                            const { seedDatabase } = await import('../services/seedService');
+                            await seedDatabase(true); // force seed
+                            alert('Banco de dados populado com sucesso! Recarregue a página se necessário.');
+                          } catch (err) {
+                            console.error(err);
+                            alert('Erro ao semear dados.');
+                          } finally {
+                            setIsSeeding(false);
+                          }
+                        }
+                      }}
+                      disabled={isSeeding}
+                      className="w-full bg-zinc-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSeeding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+                      {isSeeding ? 'Semeando...' : 'Semear Dados (Seed)'}
+                    </button>
+                  </div>
+
+                  <div className="bg-zinc-50 border-2 border-zinc-100 rounded-3xl p-8 space-y-6 opacity-60">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-zinc-400">
+                      <Trash className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-black text-zinc-900 uppercase tracking-tight">Limpar Dados</h4>
+                      <p className="text-zinc-500 text-sm mt-1">Remover todos os usuários e anúncios de teste (Não implementado).</p>
+                    </div>
+                    <button
+                      disabled
+                      className="w-full bg-zinc-200 text-zinc-400 py-4 rounded-2xl font-black text-xs uppercase tracking-widest cursor-not-allowed"
+                    >
+                      Limpeza Total
+                    </button>
+                    <p className="text-[10px] text-zinc-400 text-center font-bold uppercase tracking-widest">Disponível em breve</p>
+                  </div>
                 </div>
               </div>
             )}

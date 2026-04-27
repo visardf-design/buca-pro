@@ -23,7 +23,7 @@ import { Ad, Category, UserProfile, Review, AppSettings, UserFeature } from './t
 import { CATEGORIES, INITIAL_APP_SETTINGS } from './constants';
 import { matchesSearch } from './services/searchService';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, PlusCircle, User, Star, Shield, MapPin, X, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, User, Star, Shield, MapPin, X, ArrowRight, RefreshCw } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, onSnapshot, setDoc, query, orderBy, getDoc, getDocFromServer, deleteDoc } from 'firebase/firestore';
@@ -198,16 +198,30 @@ export default function App() {
         return;
       }
       // Check for granular chat block (simulated check using recipient UID or a mock chat ID)
-      // For demo, we'll check if the recipient's UID is in the blockedChatIds (simulated)
       if (currentUser?.blockedChatIds?.includes(recipient.uid)) {
         alert('Esta conversa específica foi bloqueada pela administração.');
         return;
       }
       setActiveChat(recipient);
     };
+
+    const handleOpenRegistration = () => {
+      setIsRegistering(true);
+    };
+
+    const handleOpenAdminAuth = () => {
+      handleOnAdminClick();
+    };
+
     window.addEventListener('openChat', handleOpenChat);
-    return () => window.removeEventListener('openChat', handleOpenChat);
-  }, [currentUser?.blockedFeatures, isLoggedIn]);
+    window.addEventListener('openRegistration', handleOpenRegistration);
+    window.addEventListener('openAdminAuth', handleOpenAdminAuth);
+    return () => {
+      window.removeEventListener('openChat', handleOpenChat);
+      window.removeEventListener('openRegistration', handleOpenRegistration);
+      window.removeEventListener('openAdminAuth', handleOpenAdminAuth);
+    };
+  }, [currentUser?.blockedFeatures, isLoggedIn, currentUser?.blockedChatIds]);
 
   // Filtered Data
   const filteredAds = useMemo(() => {
@@ -270,6 +284,14 @@ export default function App() {
     }
     if (isFeatureBlocked('ads')) {
       alert('Você está bloqueado de postar novos anúncios.');
+      return;
+    }
+    if (currentUser.status === 'pending') {
+      alert('Seu perfil está aguardando aprovação administrativa. Você poderá postar anúncios assim que for aprovado.');
+      return;
+    }
+    if (currentUser.status === 'rejected') {
+      alert('Seu perfil foi rejeitado. Entre em contato com o suporte para mais informações.');
       return;
     }
     if (currentUser.status === 'pending') {
@@ -379,22 +401,25 @@ export default function App() {
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900">
       <AnimatePresence>
         {isAdminPasswordModalOpen && (
-          <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 space-y-6"
+              initial={{ opacity: 0, y: 100, scale: 1 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-white w-full md:max-w-md h-[80vh] md:h-auto rounded-t-[3rem] md:rounded-[3rem] shadow-2xl p-8 md:p-12 space-y-8 flex flex-col justify-center"
             >
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-zinc-900 rounded-2xl mx-auto flex items-center justify-center text-white">
-                  <Shield className="w-8 h-8" />
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 bg-zinc-900 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl rotate-3">
+                  <Shield className="w-10 h-10" />
                 </div>
-                <h2 className="text-xl font-black uppercase tracking-tight">Acesso Restrito</h2>
-                <p className="text-zinc-500 text-sm font-medium">Digite a senha administrativa</p>
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-zinc-900">Acesso Restrito</h2>
+                  <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest mt-1">Configurações de Elite</p>
+                </div>
               </div>
 
-              <form onSubmit={handleAdminPasswordSubmit} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleAdminPasswordSubmit} className="space-y-6">
+                <div className="space-y-3">
                   <input
                     type="password"
                     value={adminPasswordInput}
@@ -403,29 +428,29 @@ export default function App() {
                       setAdminPasswordError(false);
                     }}
                     autoFocus
-                    placeholder="Senha de Acesso"
-                    className={`w-full p-4 bg-zinc-50 border-2 rounded-2xl outline-none transition-all font-bold text-center ${adminPasswordError ? 'border-red-500' : 'border-transparent focus:border-zinc-900'}`}
+                    placeholder="SENHA DE ACESSO"
+                    className={`w-full p-5 bg-zinc-100 border-2 rounded-[2rem] outline-none transition-all font-black text-center text-lg placeholder:text-zinc-400 ${adminPasswordError ? 'border-red-500 animate-shake' : 'border-transparent focus:border-zinc-900 focus:bg-white'}`}
                   />
                   {adminPasswordError && (
-                    <p className="text-red-500 text-[10px] font-black uppercase text-center animate-bounce">
-                      Senha Incorreta
+                    <p className="text-red-600 text-[10px] font-black uppercase text-center tracking-widest">
+                      Credenciais Inválidas
                     </p>
                   )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col md:flex-row gap-4">
                   <button 
                     type="button"
                     onClick={() => setIsAdminPasswordModalOpen(false)}
-                    className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-zinc-500 hover:bg-zinc-50 transition-colors"
+                    className="flex-1 py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all"
                   >
-                    Cancelar
+                    Retroceder
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 bg-zinc-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200"
+                    className="flex-1 bg-zinc-900 text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-2xl shadow-zinc-300 active:scale-95"
                   >
-                    Entrar
+                    Desbloquear
                   </button>
                 </div>
               </form>
@@ -528,62 +553,38 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-bold shrink-0">
-            <div className="h-4 w-[1px] bg-white/10 hidden md:block" />
-            <span className="opacity-60">Novo por aqui?</span>
-            <button 
-              onClick={() => setIsRegistering(true)} 
-              className="bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full hover:bg-purple-600/30 transition-all border border-purple-500/30"
-            >
-              Cadastre-se com CPF/CNPJ
-            </button>
-          </div>
+
         </div>
       </div>
 
       {/* Professional Call to Action Banner */}
       <div className="bg-white border-b border-zinc-100 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 flex flex-row items-center gap-2 sm:gap-4">
-          {/* Banner Verificado (Metade do comprimento) */}
-          <div className="w-1/2 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-1.5 sm:p-2 border border-purple-100 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-1 sm:p-2 opacity-5 group-hover:scale-110 transition-transform duration-700">
-              <Star className="w-4 h-4 sm:w-8 sm:h-8 text-purple-600 fill-purple-600" />
-            </div>
-            
-            <div className="relative flex items-center justify-start gap-1.5 sm:gap-3">
-              <div className="flex items-center gap-1 sm:gap-3">
-                <div className="inline-flex items-center gap-1.5 bg-purple-600 text-white px-3 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shrink-0 shadow-sm">
-                  <Shield className="w-2.5 h-2.5" /> Verificado
-                </div>
-                <h2 className="text-[9px] sm:text-xs font-black text-zinc-900 tracking-tight leading-tight whitespace-nowrap">
-                  Seja qualificada
-                  <span className="hidden sm:inline-flex items-center gap-0.5 ml-1.5">
-                    {[...Array(3)].map((_, i) => (
-                      <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </span>
-                </h2>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex flex-row items-center justify-center gap-3 sm:gap-8">
+          {/* Banner Verificado - Reduced width */}
+          <div className="w-fit bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-1.5 border border-purple-100 relative group">
+            <div className="relative flex items-center gap-2">
+              <div className="inline-flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0">
+                <Shield className="w-2.5 h-2.5" /> Verificado
               </div>
-
               <button 
                 onClick={() => setIsRegistering(true)}
-                className="bg-zinc-900 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-md font-black text-[7px] sm:text-[9px] hover:bg-zinc-800 transition-all shadow-sm active:scale-95 shrink-0"
+                className="bg-zinc-900 text-white px-2 py-1 rounded-md font-black text-[8px] hover:bg-zinc-800 transition-all active:scale-95 shrink-0"
               >
                 Validar
               </button>
             </div>
           </div>
 
-          {/* Como Funciona (Destaque colorido e piscando) */}
-          <div className="w-1/2 flex items-center justify-center">
+          {/* Como Funciona - Reduced width */}
+          <div className="w-fit">
             <button
               onClick={() => setShowOnboarding(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-zinc-50 border border-zinc-100 hover:bg-zinc-100 transition-all active:scale-95 group shadow-sm w-full justify-center"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-50 border border-zinc-100 hover:bg-zinc-100 transition-all active:scale-95 group shadow-sm"
             >
-              <span className="text-[8px] sm:text-xs font-black uppercase tracking-tighter sm:tracking-widest bg-gradient-to-r from-blue-600 via-purple-600 via-pink-500 via-red-500 via-yellow-500 via-green-500 to-blue-600 bg-clip-text text-transparent animate-rainbow bg-[length:200%_auto] animate-blink">
+              <span className="text-[9px] font-black uppercase tracking-widest bg-gradient-to-r from-blue-600 via-purple-600 via-pink-500 via-red-500 via-yellow-500 via-green-500 to-blue-600 bg-clip-text text-transparent animate-rainbow bg-[length:200%_auto] animate-blink leading-none">
                 Como Funciona
               </span>
-              <ArrowRight className="w-2 h-2 sm:w-3 sm:h-3 text-purple-600" />
+              <ArrowRight className="w-2.5 h-2.5 text-purple-600" />
             </button>
           </div>
         </div>
@@ -875,7 +876,6 @@ export default function App() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-3 flex justify-around items-center sm:hidden z-40">
         <button onClick={() => { setViewingProfile(null); setSelectedCategory(null); }} className="p-2 text-purple-600"><Search className="w-6 h-6" /></button>
         <button onClick={handleOnAdminClick} className="p-2 text-zinc-400"><Shield className="w-6 h-6" /></button>
-        <button onClick={() => setIsPosting(true)} className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg -mt-8 border-4 border-white"><PlusCircle className="w-6 h-6" /></button>
         <button onClick={() => setViewingProfile(currentUser || null)} className="p-2 text-zinc-400"><User className="w-6 h-6" /></button>
       </div>
     </div>

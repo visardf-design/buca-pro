@@ -183,12 +183,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
             <p className="text-xs text-zinc-500 font-medium">
               Não tem uma conta?
             </p>
-            <button 
-              onClick={onSignUpClick}
-              className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline"
-            >
-              Criar Conta Grátis
-            </button>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={onSignUpClick}
+                className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline"
+              >
+                Criar Conta Grátis
+              </button>
+              
+              <button 
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('openAdminAuth'));
+                  if (onClose) onClose();
+                }}
+                className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors pt-2"
+              >
+                Acesso Administrativo
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
