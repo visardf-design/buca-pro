@@ -125,6 +125,22 @@ export const supabaseService = {
     if (error) throw error;
   },
 
+  // Auth
+  async signInWithOtp(email: string): Promise<void> {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) throw error;
+  },
+
+  async signOut(): Promise<void> {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
   async getProfiles(): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')

@@ -16,22 +16,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'password' | 'otp'>('password');
+  const [otpSent, setOtpSent] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Preencha todos os campos');
+    if (!email) {
+      setError('Insira seu e-mail');
+      return;
+    }
+
+    if (authMode === 'password' && !password) {
+      setError('Insira sua senha');
       return;
     }
 
     setIsLoading(true);
     setError('');
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (authError) throw authError;
-      onLogin();
+      if (authMode === 'password') {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (authError) throw authError;
+        onLogin();
+      } else {
+        const { error: authError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.origin,
+          }
+        });
+        if (authError) throw authError;
+        setOtpSent(true);
+        setError('Link mágico enviado! Verifique seu e-mail para entrar.');
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Erro ao entrar. Tente novamente.');
@@ -83,8 +102,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
               Entrar no Busca Pro
             </h2>
             <p className="text-zinc-500 text-sm font-medium">
-              Acesse sua conta para gerenciar seus anúncios
+              Escolha seu método de acesso favorito
             </p>
+          </div>
+
+          <div className="flex bg-zinc-100 p-1 rounded-2xl gap-1">
+            <button 
+              onClick={() => { setAuthMode('password'); setError(''); }}
+              className={cn(
+                "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                authMode === 'password' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              Senha
+            </button>
+            <button 
+              onClick={() => { setAuthMode('otp'); setError(''); }}
+              className={cn(
+                "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                authMode === 'otp' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              Link Mágico
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -100,6 +140,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
                   onChange={(e) => {
                     setEmail(e.target.value);
                     setError('');
+                    setOtpSent(false);
                   }}
                   placeholder="seu@email.com"
                   className="w-full pl-12 pr-4 py-4 bg-zinc-50 border-2 border-transparent focus:border-purple-600 focus:bg-white rounded-2xl outline-none transition-all font-bold text-zinc-900"
@@ -107,33 +148,38 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-4">Senha</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-purple-600 transition-colors">
-                  <Lock className="w-4 h-4" />
+            {authMode === 'password' && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-4">Senha</label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-purple-600 transition-colors">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError('');
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                    placeholder="Sua senha"
+                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 border-2 border-transparent focus:border-purple-600 focus:bg-white rounded-2xl outline-none transition-all font-bold text-zinc-900"
+                  />
                 </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError('');
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  placeholder="Sua senha"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border-2 border-transparent focus:border-purple-600 focus:bg-white rounded-2xl outline-none transition-all font-bold text-zinc-900"
-                />
               </div>
-            </div>
+            )}
 
             {error && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 text-red-600 border border-red-100 p-4 rounded-2xl flex items-start gap-3"
+                className={cn(
+                  "p-4 rounded-2xl flex items-start gap-3 border",
+                  otpSent ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"
+                )}
               >
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                {otpSent ? <Mail className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />}
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase leading-tight">
                     {error}
@@ -144,11 +190,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
 
             <button
               onClick={handleLogin}
-              disabled={isLoading}
+              disabled={isLoading || (authMode === 'otp' && otpSent)}
               className="w-full bg-zinc-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 flex items-center justify-center gap-2 group disabled:opacity-50"
             >
-              {isLoading ? 'Processando...' : 'Confirmar Acesso'}
-              {!isLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+              {isLoading ? 'Processando...' : otpSent ? 'Link Enviado!' : 'Confirmar Acesso'}
+              {!isLoading && !otpSent && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
             </button>
           </div>
 
