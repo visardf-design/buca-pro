@@ -1,6 +1,9 @@
 import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { collection, doc, setDoc, getDocs, query, limit } from 'firebase/firestore';
 import { UserProfile, Ad, Review, Category } from '../types';
+
+const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
 
 const REVIEW_COMMENTS = [
   'Excelente profissional, muito detalhista e educado.',
@@ -57,10 +60,20 @@ const getRandom = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 export const seedDatabase = async (force: boolean = false) => {
   try {
     if (!force) {
-      const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
-      if (!usersSnap.empty) {
-        console.log('Database already has users, skipping seed.');
-        return;
+      if (USE_SUPABASE) {
+        const { count, error } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        if (!error && count && count > 0) {
+          console.log('Database already has users, skipping seed.');
+          return;
+        }
+      } else {
+        const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
+        if (!usersSnap.empty) {
+          console.log('Database already has users, skipping seed.');
+          return;
+        }
       }
     }
 
@@ -123,8 +136,42 @@ export const seedDatabase = async (force: boolean = false) => {
           createdAt: Date.now() - (Math.random() * 5000000000)
         };
 
-        await setDoc(doc(db, 'users', userId), user);
-        await setDoc(doc(db, 'ads', adId), ad);
+        if (USE_SUPABASE) {
+          // Supabase uses 'id' instead of 'uid' for auth mapping, but for seed we can use what we have
+          // In a real app, you can't just insert into 'auth.users' easily, we'd seed 'profiles'
+          await supabase.from('profiles').upsert({
+            id: userId,
+            username: user.username,
+            display_name: user.displayName,
+            role: user.role,
+            photo_url: user.photoURL,
+            description: user.description,
+            rating: user.rating,
+            review_count: user.reviewCount,
+            plan: user.plan,
+            phone: user.phone,
+            location: user.location,
+            category: user.category,
+            created_at: new Date(user.createdAt).toISOString()
+          });
+
+          await supabase.from('ads').upsert({
+            id: adId,
+            title: ad.title,
+            description: ad.description,
+            price: ad.price,
+            category: ad.category,
+            image_url: ad.imageUrl,
+            seller_id: userId,
+            seller_name: ad.sellerName,
+            seller_photo: ad.sellerPhoto,
+            status: ad.status,
+            created_at: new Date(ad.createdAt).toISOString()
+          });
+        } else {
+          await setDoc(doc(db, 'users', userId), user);
+          await setDoc(doc(db, 'ads', adId), ad);
+        }
 
         // Add 3-5 random reviews per user
         const reviewNum = 3 + Math.floor(Math.random() * 3);
@@ -140,7 +187,21 @@ export const seedDatabase = async (force: boolean = false) => {
             comment: getRandom(REVIEW_COMMENTS),
             createdAt: Date.now() - (Math.random() * 5000000000)
           };
-          await setDoc(doc(db, 'reviews', reviewId), review);
+          
+          if (USE_SUPABASE) {
+            await supabase.from('reviews').upsert({
+              id: reviewId,
+              ad_id: adId,
+              reviewer_id: review.reviewerId,
+              reviewer_name: review.reviewerName,
+              target_user_id: userId,
+              rating: review.rating,
+              comment: review.comment,
+              created_at: new Date(review.createdAt).toISOString()
+            });
+          } else {
+            await setDoc(doc(db, 'reviews', reviewId), review);
+          }
         }
       }
     }

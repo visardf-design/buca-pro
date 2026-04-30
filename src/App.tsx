@@ -25,9 +25,13 @@ import { matchesSearch } from './services/searchService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, User, Star, Shield, MapPin, X, ArrowRight, RefreshCw } from 'lucide-react';
 import { auth, db } from './firebase';
+import { supabase } from './supabase';
+import { supabaseService } from './services/supabaseService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, onSnapshot, setDoc, query, orderBy, getDoc, getDocFromServer, deleteDoc } from 'firebase/firestore';
 import { seedDatabase } from './services/seedService';
+
+const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
 
 export default function App() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -71,8 +75,9 @@ export default function App() {
     console.error('Firestore Error:', JSON.stringify(errInfo, null, 2));
   };
 
-  // Test connection to Firestore
+  // Test connection to Firestore (only if not using Supabase)
   useEffect(() => {
+    if (USE_SUPABASE) return;
     async function testConnection() {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
@@ -85,98 +90,131 @@ export default function App() {
     testConnection();
   }, []);
 
+  // Sync Logic (Firebase or Supabase)
+  useEffect(() => {
+    if (USE_SUPABASE) {
+      // Supabase Auth
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const profile = await supabaseService.getProfile(session.user.id);
+          if (profile) {
+            setCurrentUser(profile);
+            setIsLoggedIn(true);
+          } else {
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+          }
+        } else {
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        }
+        setIsAuthReady(true);
+      });
+
+      // Supabase Real-time (Simplified initial fetch)
+      const fetchInitialData = async () => {
+        const [initialAds, initialSettings, initialUsers] = await Promise.all([
+          supabaseService.getAds(),
+          supabaseService.getSettings(),
+          supabaseService.getProfiles()
+        ]);
+        setAds(initialAds);
+        setUsers(initialUsers);
+        if (initialSettings) setAppSettings(initialSettings);
+      };
+      
+      fetchInitialData();
+
+      // Realtime listener for ads and profiles
+      const adsSubscription = supabase
+        .channel('public:ads')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, payload => {
+          fetchInitialData();
+        })
+        .subscribe();
+      
+      const profilesSubscription = supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+          fetchInitialData();
+        })
+        .subscribe();
+
+      return () => {
+        adsSubscription.unsubscribe();
+        profilesSubscription.unsubscribe();
+      };
+    } else {
+      // Firebase Auth Listener
+      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser(userDoc.data() as UserProfile);
+            setIsLoggedIn(true);
+          } else if (user.email === 'VISARDF@gmail.com') {
+            const bootstrapAdmin: UserProfile = {
+              uid: user.uid,
+              username: 'admin',
+              displayName: 'Administrador',
+              role: 'admin',
+              createdAt: Date.now(),
+              status: 'approved',
+              plan: 'premium',
+              rating: 5.0,
+              reviewCount: 0
+            };
+            setCurrentUser(bootstrapAdmin);
+            setIsLoggedIn(true);
+            setDoc(doc(db, 'users', user.uid), bootstrapAdmin).catch(err => 
+              handleFirestoreError(err, 'write', 'users/' + user.uid)
+            );
+          } else {
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+          }
+        } else {
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        }
+        setIsAuthReady(true);
+      });
+
+      // Firebase Firestore Listeners
+      const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
+        if (snapshot.exists()) {
+          setAppSettings(snapshot.data() as AppSettings);
+        } else if (isLoggedIn && currentUser?.role === 'admin') {
+          setDoc(doc(db, 'settings', 'global'), INITIAL_APP_SETTINGS).catch(err => 
+            handleFirestoreError(err, 'write', 'settings/global')
+          );
+        }
+      });
+
+      const qAds = query(collection(db, 'ads'), orderBy('createdAt', 'desc'));
+      const unsubscribeAds = onSnapshot(qAds, (snapshot) => {
+        setAds(snapshot.docs.map(doc => doc.data() as Ad));
+      });
+
+      const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+        setUsers(snapshot.docs.map(doc => doc.data() as UserProfile));
+      });
+
+      return () => {
+        unsubscribeAuth();
+        unsubscribeSettings();
+        unsubscribeAds();
+        unsubscribeUsers();
+      };
+    }
+  }, [isLoggedIn, currentUser]);
+
   // Seed Database
   useEffect(() => {
     if (isLoggedIn && currentUser?.role === 'admin') {
       seedDatabase();
     }
   }, [isLoggedIn, currentUser]);
-
-  // Auth Listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Fetch user profile from Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as UserProfile;
-          setCurrentUser(userData);
-          setIsLoggedIn(true);
-        } else if (user.email === 'VISARDF@gmail.com') {
-          // Bootstrap admin case: user exists in Auth but not yet in Firestore
-          const bootstrapAdmin: UserProfile = {
-            uid: user.uid,
-            username: 'admin',
-            displayName: 'Administrador',
-            role: 'admin',
-            createdAt: Date.now(),
-            status: 'approved',
-            plan: 'premium',
-            rating: 5.0,
-            reviewCount: 0
-          };
-          setCurrentUser(bootstrapAdmin);
-          setIsLoggedIn(true);
-          // Optionally create the document now
-          setDoc(doc(db, 'users', user.uid), bootstrapAdmin).catch(err => 
-            handleFirestoreError(err, 'write', 'users/' + user.uid)
-          );
-        } else {
-          // If user exists in Auth but not in Firestore, they might be new
-          setIsLoggedIn(false);
-          setCurrentUser(null);
-        }
-      } else {
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-      }
-      setIsAuthReady(true);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Firestore Sync: Settings
-  useEffect(() => {
-    const path = 'settings/global';
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
-      if (snapshot.exists()) {
-        setAppSettings(snapshot.data() as AppSettings);
-      } else if (isLoggedIn && currentUser?.role === 'admin') {
-        // Only initialize settings if they don't exist AND user is an admin
-        setDoc(doc(db, 'settings', 'global'), INITIAL_APP_SETTINGS).catch(err => 
-          handleFirestoreError(err, 'write', path)
-        );
-      }
-    }, (error) => {
-      handleFirestoreError(error, 'get', path);
-    });
-    return () => unsubscribe();
-  }, [isLoggedIn, currentUser]);
-
-  // Firestore Sync: Ads
-  useEffect(() => {
-    const path = 'ads';
-    const q = query(collection(db, 'ads'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const adsData = snapshot.docs.map(doc => doc.data() as Ad);
-      setAds(adsData);
-    }, (error) => {
-      handleFirestoreError(error, 'list', path);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Firestore Sync: Users
-  useEffect(() => {
-    const path = 'users';
-    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const usersData = snapshot.docs.map(doc => doc.data() as UserProfile);
-      setUsers(usersData);
-    }, (error) => {
-      handleFirestoreError(error, 'list', path);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const isFeatureBlocked = (feature: UserFeature) => {
     return currentUser?.blockedFeatures?.includes(feature);
@@ -322,7 +360,11 @@ export default function App() {
     };
     
     try {
-      await setDoc(doc(db, 'ads', adId), newAd);
+      if (USE_SUPABASE) {
+        await supabaseService.createAd(newAd);
+      } else {
+        await setDoc(doc(db, 'ads', adId), newAd);
+      }
       setIsPosting(false);
     } catch (error) {
       console.error("Error posting ad:", error);
@@ -350,7 +392,20 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'reviews', reviewId), newReview);
+      if (USE_SUPABASE) {
+        await supabase.from('reviews').insert({
+          id: reviewId,
+          ad_id: newReview.adId,
+          reviewer_id: newReview.reviewerId,
+          reviewer_name: newReview.reviewerName,
+          target_user_id: newReview.targetUserId,
+          rating: newReview.rating,
+          comment: newReview.comment,
+          created_at: new Date(newReview.createdAt).toISOString()
+        });
+      } else {
+        await setDoc(doc(db, 'reviews', reviewId), newReview);
+      }
       setIsReviewing(null);
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -811,7 +866,11 @@ export default function App() {
             settings={appSettings}
             onUpdateSettings={async (updates) => {
               try {
-                await setDoc(doc(db, 'settings', 'global'), updates, { merge: true });
+                if (USE_SUPABASE) {
+                  await supabaseService.updateSettings(updates);
+                } else {
+                  await setDoc(doc(db, 'settings', 'global'), updates, { merge: true });
+                }
               } catch (error) {
                 console.error("Error updating settings:", error);
               }
@@ -819,7 +878,11 @@ export default function App() {
             categories={categories}
             onUpdateCategories={async (newCategories) => {
               try {
-                await setDoc(doc(db, 'settings', 'categories'), { list: newCategories });
+                if (USE_SUPABASE) {
+                  await supabase.from('settings').upsert({ id: 'categories', data: JSON.stringify(newCategories) });
+                } else {
+                  await setDoc(doc(db, 'settings', 'categories'), { list: newCategories });
+                }
                 setCategories(newCategories);
               } catch (error) {
                 console.error("Error updating categories:", error);
@@ -828,9 +891,14 @@ export default function App() {
             users={users}
             onUpdateUsers={async (updatedUsers) => {
               try {
-                // For now we update each user document. In a larger app, use batch writes.
-                for (const user of updatedUsers) {
-                  await setDoc(doc(db, 'users', user.uid), user);
+                if (USE_SUPABASE) {
+                  for (const user of updatedUsers) {
+                    await supabaseService.updateProfile(user);
+                  }
+                } else {
+                  for (const user of updatedUsers) {
+                    await setDoc(doc(db, 'users', user.uid), user);
+                  }
                 }
               } catch (error) {
                 console.error("Error updating users:", error);
@@ -838,17 +906,18 @@ export default function App() {
             }}
             onDeleteUser={async (uid) => {
               try {
-                // Delete user document
-                await deleteDoc(doc(db, 'users', uid));
-                // Delete user's ads
-                const userAds = ads.filter(ad => ad.sellerId === uid);
-                for (const ad of userAds) {
-                  await deleteDoc(doc(db, 'ads', ad.id));
-                }
-                // Delete user's reviews
-                const userReviews = reviews.filter(rev => rev.reviewerId === uid || rev.targetUserId === uid);
-                for (const rev of userReviews) {
-                  await deleteDoc(doc(db, 'reviews', rev.id));
+                if (USE_SUPABASE) {
+                  await supabase.from('profiles').delete().eq('id', uid);
+                } else {
+                  await deleteDoc(doc(db, 'users', uid));
+                  const userAds = ads.filter(ad => ad.sellerId === uid);
+                  for (const ad of userAds) {
+                    await deleteDoc(doc(db, 'ads', ad.id));
+                  }
+                  const userReviews = reviews.filter(rev => rev.reviewerId === uid || rev.targetUserId === uid);
+                  for (const rev of userReviews) {
+                    await deleteDoc(doc(db, 'reviews', rev.id));
+                  }
                 }
               } catch (error) {
                 console.error("Error deleting user and related data:", error);

@@ -4,8 +4,12 @@ import { X, Search, Check, Loader2, Mail, Lock, CheckCircle } from 'lucide-react
 import { motion } from 'motion/react';
 import { CATEGORIES } from '../constants';
 import { auth, db } from '../firebase';
+import { supabase } from '../supabase';
+import { supabaseService } from '../services/supabaseService';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+
+const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
 
 interface RegistrationFormProps {
   onClose: () => void;
@@ -34,44 +38,75 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onClose, onS
     setError('');
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      if (USE_SUPABASE) {
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: displayName,
+              role: email === 'SERVICESSEARCHDF@GMAIL.COM' ? 'admin' : role
+            }
+          }
+        });
 
-      const newUser: UserProfile = {
-        uid: user.uid,
-        username: displayName.toLowerCase().replace(/\s+/g, '_'),
-        displayName: displayName,
-        role: email === 'VISARDF@gmail.com' ? 'admin' : role,
-        clientType: role === 'client' ? clientType : undefined,
-        category: role === 'professional' ? (selectedCategory as Category) : undefined,
-        helperSpecialty: (role === 'professional' && selectedCategory === 'Ajudante') ? (helperSpecialty as HelperSpecialty) : undefined,
-        photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`,
-        createdAt: Date.now(),
-        rating: 5.0,
-        reviewCount: 0,
-        plan: 'free',
-        status: email === 'VISARDF@gmail.com' ? 'approved' : 'pending',
-        phone: '(11) 99999-9999',
-        location: 'São Paulo, SP',
-      };
+        if (authError) throw authError;
+        if (data.user) {
+          const newUser: UserProfile = {
+            uid: data.user.id,
+            username: displayName.toLowerCase().replace(/\s+/g, '_'),
+            displayName: displayName,
+            role: email === 'VISARDF@gmail.com' ? 'admin' : role,
+            clientType: role === 'client' ? clientType : undefined,
+            category: role === 'professional' ? (selectedCategory as Category) : undefined,
+            helperSpecialty: (role === 'professional' && selectedCategory === 'Ajudante') ? (helperSpecialty as HelperSpecialty) : undefined,
+            photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`,
+            createdAt: Date.now(),
+            rating: 5.0,
+            reviewCount: 0,
+            plan: 'free',
+            status: email === 'VISARDF@gmail.com' ? 'approved' : 'pending',
+            phone: '(11) 99999-9999',
+            location: 'São Paulo, SP',
+          };
 
-      await setDoc(doc(db, 'users', user.uid), newUser);
-      setIsSuccess(true);
-      // Sign out immediately so they have to wait for approval, unless it's the admin
-      if (email !== 'VISARDF@gmail.com') {
-        await signOut(auth);
+          await supabaseService.updateProfile(newUser);
+          setIsSuccess(true);
+          if (email !== 'VISARDF@gmail.com') {
+            await supabase.auth.signOut();
+          }
+        }
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        const newUser: UserProfile = {
+          uid: user.uid,
+          username: displayName.toLowerCase().replace(/\s+/g, '_'),
+          displayName: displayName,
+          role: email === 'VISARDF@gmail.com' ? 'admin' : role,
+          clientType: role === 'client' ? clientType : undefined,
+          category: role === 'professional' ? (selectedCategory as Category) : undefined,
+          helperSpecialty: (role === 'professional' && selectedCategory === 'Ajudante') ? (helperSpecialty as HelperSpecialty) : undefined,
+          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`,
+          createdAt: Date.now(),
+          rating: 5.0,
+          reviewCount: 0,
+          plan: 'free',
+          status: email === 'VISARDF@gmail.com' ? 'approved' : 'pending',
+          phone: '(11) 99999-9999',
+          location: 'São Paulo, SP',
+        };
+
+        await setDoc(doc(db, 'users', user.uid), newUser);
+        setIsSuccess(true);
+        if (email !== 'VISARDF@gmail.com') {
+          await signOut(auth);
+        }
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('O provedor de E-mail/Senha não está habilitado no Console do Firebase. Por favor, habilite-o em Autenticação > Sign-in method.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('Este e-mail já está em uso.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('A senha deve ter pelo menos 6 caracteres.');
-      } else {
-        setError('Erro ao criar conta. Tente novamente.');
-      }
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

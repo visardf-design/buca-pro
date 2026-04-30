@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
+import { supabase } from '../supabase';
 import { signInWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+
+const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
 import { Lock, Mail, ArrowRight, X, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -28,17 +31,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
     setError('');
     setNeedsVerification(false);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      onLogin();
+      if (USE_SUPABASE) {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (authError) throw authError;
+        onLogin();
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        onLogin();
+      }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('O provedor de E-mail/Senha não está habilitado no Console do Firebase. Por favor, habilite-o em Autenticação > Sign-in method.');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('E-mail ou senha incorretos');
-      } else {
-        setError('Erro ao entrar. Tente novamente.');
-      }
+      setError(err.message || 'Erro ao entrar. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
