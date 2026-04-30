@@ -14,7 +14,20 @@ export const supabaseService = {
       console.error('Error fetching profile:', error);
       return null;
     }
-    return data as UserProfile;
+    
+    // Proper mapping from DB snake_case to Frontend camelCase
+    return {
+      ...data,
+      uid: data.id,
+      displayName: data.display_name,
+      photoURL: data.photo_url,
+      clientType: data.client_type,
+      helperSpecialty: data.helper_specialty,
+      portfolioPhotos: data.portfolio_photos,
+      phone2: data.phone2,
+      whatsapp2: data.whatsapp2,
+      createdAt: new Date(data.created_at).getTime()
+    } as unknown as UserProfile;
   },
 
   async updateProfile(profile: UserProfile): Promise<void> {
@@ -32,8 +45,11 @@ export const supabaseService = {
         review_count: profile.reviewCount,
         plan: profile.plan,
         phone: profile.phone,
+        phone2: profile.phone2,
         whatsapp: profile.whatsapp,
+        whatsapp2: profile.whatsapp2,
         instagram: profile.instagram,
+        portfolio_photos: profile.portfolioPhotos,
         location: profile.location ? JSON.stringify(profile.location) : null,
         category: profile.category,
         helper_specialty: profile.helperSpecialty,
@@ -125,6 +141,9 @@ export const supabaseService = {
       photoURL: p.photo_url,
       clientType: p.client_type,
       helperSpecialty: p.helper_specialty,
+      portfolioPhotos: p.portfolio_photos,
+      phone2: p.phone2,
+      whatsapp2: p.whatsapp2,
       createdAt: new Date(p.created_at).getTime()
     })) as unknown as UserProfile[];
   }

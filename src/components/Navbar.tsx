@@ -79,8 +79,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Search Bar - Responsive width */}
         <div className={cn(
-          "flex-1 max-w-[60px] xs:max-w-[100px] sm:max-w-[150px] md:max-w-[200px] lg:max-w-md relative group transition-all duration-300",
-          isFocused ? "scale-[1.02] max-w-none sm:max-w-md z-[60] fixed inset-x-2 top-2 bg-white rounded-2xl p-1 shadow-2xl sm:relative sm:inset-auto sm:p-0 sm:shadow-none" : ""
+          "flex-1 max-w-[120px] sm:max-w-md relative group transition-all duration-300",
+          isFocused ? "max-w-none z-[60] fixed inset-x-2 top-2 bg-white rounded-2xl p-1 shadow-2xl sm:relative sm:inset-auto sm:p-0 sm:shadow-none" : ""
         )}>
           <div className={cn(
             "flex items-center bg-zinc-100 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 overflow-hidden h-9 sm:h-12",

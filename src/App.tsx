@@ -543,7 +543,7 @@ export default function App() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto pb-20">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-4 md:pt-8 flex-1">
         <AnimatePresence mode="wait">
           {showOnboarding ? (
             <motion.div
@@ -597,7 +597,10 @@ export default function App() {
                 onUpdateProfile={async (updates) => {
                   if (!currentUser) return;
                   try {
-                    await supabaseService.updateProfile({ ...currentUser, ...updates });
+                    const updatedProfile = { ...currentUser, ...updates };
+                    await supabaseService.updateProfile(updatedProfile);
+                    setCurrentUser(updatedProfile);
+                    setViewingProfile(updatedProfile);
                   } catch (error) {
                     console.error("Error updating profile:", error);
                   }
@@ -702,7 +705,7 @@ export default function App() {
 
               <div className="p-4">
                 {viewMode === 'list' ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {filteredAds.map(ad => (
                       <AdCard key={ad.id} ad={ad} onClick={setSelectedAd} />
                     ))}

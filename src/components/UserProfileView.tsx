@@ -4,10 +4,8 @@ import { Star, MapPin, Calendar, Package, CheckCircle, Video, Play, Camera, Plus
 import { AdCard } from './AdCard';
 import { PortfolioDetail } from './PortfolioDetail';
 import { CameraCapture } from './CameraCapture';
+import { ProfileEditModal } from './ProfileEditModal';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { AnimatePresence, motion } from 'motion/react';
-import { cn } from '../lib/utils';
 
 interface UserProfileViewProps {
   user: UserProfile;
@@ -36,6 +34,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [showCamera, setShowCamera] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
   const [deliveries, setDeliveries] = useState([
     {
       id: 'd1',
@@ -92,6 +92,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             onClose={() => setShowCamera(false)}
           />
         )}
+        
+        <ProfileEditModal 
+          user={user}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={async (updates) => {
+            onUpdateProfile?.(updates);
+          }}
+        />
       </AnimatePresence>
 
       {/* Profile Header Card */}
@@ -194,34 +203,56 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full md:w-auto pt-4 md:pt-12">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto pt-4 md:pt-12">
               <button 
                 onClick={() => onMessageClick(user)}
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 active:scale-95"
+                className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 active:scale-95"
               >
-                <MessageSquare className="w-5 h-5" />
-                Chat Pro
+                <MessageSquare className="w-5 h-5 shrink-0" />
+                <span className="whitespace-nowrap">Chat Pro</span>
               </button>
               
               {user.whatsapp && (
                 <a 
-                  href={`https://wa.me/${user.whatsapp}`}
+                  href={`https://wa.me/${user.whatsapp.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-emerald-500 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
                 >
-                  <MessageCircle className="w-5 h-5" />
-                  WhatsApp
+                  <MessageCircle className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">WhatsApp 1</span>
+                </a>
+              )}
+
+              {user.whatsapp2 && (
+                <a 
+                  href={`https://wa.me/${user.whatsapp2.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                >
+                  <MessageCircle className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">WhatsApp 2</span>
                 </a>
               )}
 
               {user.phone && (
                 <a 
                   href={`tel:${user.phone.replace(/\D/g, '')}`}
-                  className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-white border-2 border-zinc-100 text-zinc-900 px-6 py-3 rounded-2xl font-black text-sm hover:bg-zinc-50 transition-all active:scale-95"
+                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-white border-2 border-zinc-100 text-zinc-900 px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
                 >
-                  <Phone className="w-5 h-5" />
-                  Ligar
+                  <Phone className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">Ligar 1</span>
+                </a>
+              )}
+
+              {user.phone2 && (
+                <a 
+                  href={`tel:${user.phone2.replace(/\D/g, '')}`}
+                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-white border-2 border-zinc-100 text-zinc-900 px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
+                >
+                  <Phone className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">Ligar 2</span>
                 </a>
               )}
 
@@ -338,12 +369,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   count={ads.filter(a => a.sellerId === user.uid).length}
                 />
               )}
-              {user.portfolio && user.portfolio.length > 0 && (
+              {((user.portfolio && user.portfolio.length > 0) || (user.portfolioPhotos && user.portfolioPhotos.length > 0)) && (
                 <TabButton 
                   active={activeTab === 'portfolio'} 
                   onClick={() => setActiveTab('portfolio')} 
                   label="Portfólio" 
-                  count={user.portfolio.length}
+                  count={(user.portfolio?.length || 0) + (user.portfolioPhotos?.length || 0)}
                 />
               )}
               {user.role === 'professional' && (
@@ -435,7 +466,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
                     {/* Profile Quick Actions */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <button className="flex items-center justify-between p-6 bg-white border-2 border-zinc-100 rounded-[2rem] hover:border-purple-600 transition-all group">
+                      <button 
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="flex items-center justify-between p-6 bg-white border-2 border-zinc-100 rounded-[2rem] hover:border-purple-600 transition-all group"
+                      >
                         <div className="flex items-center gap-4">
                           <div className="p-3 bg-purple-50 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
                             <Settings className="w-6 h-6" />
@@ -492,37 +526,63 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+                    className="space-y-8"
                   >
-                    {filteredPortfolio.map((service) => (
-                      <div 
-                        key={service.id}
-                        onClick={() => setSelectedService(service)}
-                        className="bg-zinc-50 rounded-3xl border border-zinc-200 overflow-hidden cursor-pointer hover:shadow-xl transition-all group"
-                      >
-                        <div className="aspect-video relative overflow-hidden">
-                          <img 
-                            src={service.images[0]} 
-                            alt={service.title} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                            {service.images.length} fotos
-                          </div>
-                        </div>
-                        <div className="p-5">
-                          <h4 className="font-black text-zinc-900 text-lg line-clamp-1">{service.title}</h4>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-1 text-purple-600 text-sm font-black">
-                              <Star className="w-4 h-4 fill-purple-600" />
-                              <span>{service.rating}</span>
+                    {/* New Portfolio Photos Section */}
+                    {user.portfolioPhotos && user.portfolioPhotos.length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-2">Fotos de Destaque</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                          {user.portfolioPhotos.map((photo, i) => (
+                            <div key={i} className="group relative bg-zinc-50 rounded-2xl sm:rounded-3xl overflow-hidden border border-zinc-200 aspect-square shadow-sm hover:shadow-md transition-all">
+                              <img 
+                                src={photo.url} 
+                                alt={`Portfolio ${i + 1}`} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                              />
+                              {photo.description && (
+                                <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 sm:p-3 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform">
+                                  <p className="text-[9px] sm:text-[10px] text-white font-medium leading-tight">{photo.description}</p>
+                                </div>
+                              )}
                             </div>
-                            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Ver Detalhes</span>
-                          </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Original Service Portfolio */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {filteredPortfolio.map((service) => (
+                        <div 
+                          key={service.id}
+                          onClick={() => setSelectedService(service)}
+                          className="bg-zinc-50 rounded-3xl border border-zinc-200 overflow-hidden cursor-pointer hover:shadow-xl transition-all group"
+                        >
+                          <div className="aspect-video relative overflow-hidden">
+                            <img 
+                              src={service.images[0]} 
+                              alt={service.title} 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                              {service.images.length} fotos
+                            </div>
+                          </div>
+                          <div className="p-5">
+                            <h4 className="font-black text-zinc-900 text-lg line-clamp-1">{service.title}</h4>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-1 text-purple-600 text-sm font-black">
+                                <Star className="w-4 h-4 fill-purple-600" />
+                                <span>{service.rating}</span>
+                              </div>
+                              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Ver Detalhes</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
 

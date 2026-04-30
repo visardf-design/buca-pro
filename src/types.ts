@@ -52,6 +52,11 @@ export interface ServicePortfolio {
   createdAt: number;
 }
 
+export interface PortfolioItem {
+  url: string;
+  description?: string;
+}
+
 export interface UserProfile {
   uid: string;
   username: string;
@@ -65,6 +70,7 @@ export interface UserProfile {
   reviewCount: number;
   createdAt: number;
   portfolio?: ServicePortfolio[];
+  portfolioPhotos?: PortfolioItem[]; // Para até 6 fotos com descrição
   blockedFeatures?: UserFeature[];
   blockedCategories?: Category[];
   blockedAdIds?: string[];
@@ -74,7 +80,9 @@ export interface UserProfile {
   plan?: 'free' | 'premium';
   status: 'pending' | 'approved' | 'rejected';
   phone?: string;
+  phone2?: string;
   whatsapp?: string;
+  whatsapp2?: string;
   instagram?: string;
   location?: string;
   skills?: string[];
