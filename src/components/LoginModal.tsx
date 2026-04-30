@@ -65,10 +65,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
       // To resend, we need to sign in again temporarily or have the user object
       // But since we signed out, we might need them to sign in again to get the user object
       // Or we can just tell them to check their email again.
-      // Actually, Firebase requires a signed-in user to send verification.
-      // So we'll tell them to try logging in again to trigger the check or we can do it here if we didn't sign out yet.
-      
-      // Better: Don't sign out immediately in handleLogin, show the resend button, then sign out when they close or try again.
+      // Supabase handles this automatically if configured.
       setError('Um novo e-mail de confirmação foi enviado. Verifique sua caixa de entrada.');
     } catch (err) {
       setError('Erro ao enviar e-mail. Tente novamente mais tarde.');

@@ -39,7 +39,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onClose, onS
         options: {
           data: {
             display_name: displayName,
-            role: email === 'SERVICESSEARCHDF@GMAIL.COM' ? 'admin' : role
+            role: email === 'VISARDF@gmail.com' ? 'admin' : role
           }
         }
       });

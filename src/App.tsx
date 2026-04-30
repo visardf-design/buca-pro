@@ -31,14 +31,21 @@ import { supabaseService } from './services/supabaseService';
 import { seedDatabase } from './services/seedService';
 
 const CATEGORIES_COLOR_MAP: Record<Category, string> = {
-  'Geral': 'zinc',
-  'Ajudante': 'amber',
-  'Doméstico': 'pink',
-  'Reparos': 'blue',
-  'Construção': 'orange',
-  'Técnico': 'indigo',
-  'Beleza': 'rose',
-  'Eventos': 'purple',
+  'Arquitetura': 'indigo',
+  'Engenharia': 'blue',
+  'Técnico de Edificação': 'cyan',
+  'Alvenaria e Estrutura': 'amber',
+  'Armador': 'orange',
+  'Elétrica': 'yellow',
+  'Hidráulica': 'sky',
+  'Telhados e Calhas': 'blue',
+  'Gesso e Drywall': 'zinc',
+  'Pisos e Revestimentos': 'stone',
+  'Pintura e Acabamento': 'emerald',
+  'Marcenaria': 'brown',
+  'Serralheria': 'zinc',
+  'Ajudante': 'orange',
+  'Limpeza Pós-Obra': 'teal',
   'Outros': 'zinc'
 };
 
@@ -381,7 +388,7 @@ export default function App() {
   };
 
   const handleRegistration = async (data: any) => {
-    // This is handled by the RegistrationForm which now uses Firebase Auth
+    // This is handled by the RegistrationForm
     console.log('Registration data received:', data);
   };
 

@@ -6,6 +6,9 @@ import { PortfolioDetail } from './PortfolioDetail';
 import { CameraCapture } from './CameraCapture';
 import { ProfileEditModal } from './ProfileEditModal';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../lib/utils';
 
 interface UserProfileViewProps {
   user: UserProfile;
@@ -453,7 +456,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                       <div className="grid gap-4">
                         {ads.filter(a => a.sellerId === user.uid).map(ad => (
                           <div key={ad.id} className="bg-zinc-50 p-4 rounded-3xl border border-zinc-200 flex flex-col sm:flex-row items-center gap-4 group hover:bg-white hover:shadow-lg transition-all">
-                            <img src={ad.imageUrl} alt="" className="w-20 h-20 rounded-2xl object-cover shadow-md" />
+                            <img src={ad.imageUrl} alt="" className="w-20 h-20 rounded-2xl object-cover shadow-md" referrerPolicy="no-referrer" />
                             <div className="flex-1 min-w-0 text-center sm:text-left">
                               <h4 className="font-black text-zinc-900 truncate">{ad.title}</h4>
                               <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-1">
@@ -563,6 +566,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                                 src={photo.url} 
                                 alt={`Portfolio ${i + 1}`} 
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                referrerPolicy="no-referrer"
                               />
                               {photo.description && (
                                 <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 sm:p-3 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform">

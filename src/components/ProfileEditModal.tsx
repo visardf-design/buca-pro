@@ -97,6 +97,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ user, isOpen
                     src={formData.photoURL || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&h=150&auto=format&fit=crop'} 
                     alt="Preview" 
                     className="w-32 h-32 rounded-[2rem] object-cover border-4 border-white shadow-xl group-hover:opacity-75 transition-all"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
                     <Camera className="w-8 h-8 text-white drop-shadow-lg" />
@@ -228,7 +229,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ user, isOpen
                     <div key={index} className="relative group aspect-square">
                       {item.url ? (
                         <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-zinc-100 shadow-sm">
-                          <img src={item.url} alt={`Portfolio ${index}`} className="w-full h-full object-cover" />
+                          <img src={item.url} alt={`Portfolio ${index}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all">
                             <p className="text-[9px] text-white font-medium truncate">{item.description || 'Sem descrição'}</p>
                           </div>

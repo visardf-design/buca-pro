@@ -609,6 +609,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`}
                                 alt={user.displayName}
                                 className="w-16 h-16 rounded-2xl object-cover border-2 border-zinc-100"
+                                referrerPolicy="no-referrer"
                               />
                               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-purple-600 rounded-lg flex items-center justify-center text-white shadow-lg border-2 border-white">
                                 <Star className="w-3 h-3 fill-current" />
@@ -1127,7 +1128,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {users.slice(0, 3).map(user => (
                         <div key={user.uid} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-200">
                           <div className="flex items-center gap-3">
-                            <img src={user.photoURL} className="w-8 h-8 rounded-full" />
+                            <img src={user.photoURL} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
                             <span className="font-bold text-sm text-zinc-700">{user.displayName}</span>
                           </div>
                           <button className="text-xs font-bold text-purple-600 hover:underline">Conversar</button>
@@ -1306,6 +1307,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           src={user.photoURL || 'https://via.placeholder.com/150'} 
                           alt={user.displayName}
                           className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm"
+                          referrerPolicy="no-referrer"
                         />
                         <div className="flex-1">
                           <h4 className="font-bold text-zinc-900">{user.displayName}</h4>
@@ -1409,7 +1411,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     user.portfolio?.map(item => (
                                       <div key={item.id} className="flex items-center justify-between p-2 bg-white rounded-lg border border-zinc-100">
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <img src={item.images[0]} className="w-6 h-6 rounded object-cover" />
+                                          <img src={item.images[0]} className="w-6 h-6 rounded object-cover" referrerPolicy="no-referrer" />
                                           <span className="text-[10px] font-bold text-zinc-600 truncate">{item.title}</span>
                                         </div>
                                         <button 
@@ -1826,7 +1828,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <tr key={user.uid} className="hover:bg-zinc-50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <img src={user.photoURL} className="w-8 h-8 rounded-lg object-cover" alt="" />
+                                <img src={user.photoURL} className="w-8 h-8 rounded-lg object-cover" alt="" referrerPolicy="no-referrer" />
                                 <div>
                                   <p className="text-sm font-bold text-zinc-900">{user.displayName}</p>
                                   <p className="text-[10px] text-zinc-400">@{user.username}</p>
