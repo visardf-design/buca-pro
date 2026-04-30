@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase';
 import { supabase } from '../supabase';
-import { signInWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 
-const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
 import { Lock, Mail, ArrowRight, X, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -19,7 +16,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -29,19 +25,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
 
     setIsLoading(true);
     setError('');
-    setNeedsVerification(false);
     try {
-      if (USE_SUPABASE) {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (authError) throw authError;
-        onLogin();
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        onLogin();
-      }
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (authError) throw authError;
+      onLogin();
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Erro ao entrar. Tente novamente.');
@@ -141,36 +131,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, onClose, onSign
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "p-4 rounded-2xl flex items-start gap-3",
-                  needsVerification ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-red-50 text-red-600 border border-red-100"
-                )}
+                className="bg-red-50 text-red-600 border border-red-100 p-4 rounded-2xl flex items-start gap-3"
               >
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase leading-tight">
                     {error}
                   </p>
-                  {needsVerification && (
-                    <button 
-                      onClick={async () => {
-                        setIsLoading(true);
-                        try {
-                          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                          await sendEmailVerification(userCredential.user);
-                          await signOut(auth);
-                          setError('E-mail de confirmação reenviado com sucesso!');
-                        } catch (err) {
-                          setError('Erro ao reenviar e-mail. Tente novamente.');
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      className="text-[9px] font-black uppercase tracking-widest underline hover:no-underline"
-                    >
-                      Reenviar link de confirmação
-                    </button>
-                  )}
                 </div>
               </motion.div>
             )}

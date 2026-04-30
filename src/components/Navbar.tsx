@@ -14,6 +14,7 @@ interface NavbarProps {
   onOnboardingClick: () => void;
   isLoggedIn: boolean;
   liveCounter?: number;
+  supabaseStatus?: 'connecting' | 'connected' | 'error';
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOnboardingClick,
   isLoggedIn,
   liveCounter,
+  supabaseStatus,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -152,8 +154,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={onProfileClick}
                   className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-xl transition-all active:scale-95 group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center relative">
                     <User className="w-5 h-5 text-zinc-600 group-hover:text-purple-600 transition-colors" />
+                    {supabaseStatus === 'connected' && (
+                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white animate-pulse shadow-sm" title="Supabase Conectado" />
+                    )}
+                    {supabaseStatus === 'connecting' && (
+                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-white animate-bounce" title="Conectando ao Supabase..." />
+                    )}
+                    {supabaseStatus === 'error' && (
+                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" title="Erro na conexão Supabase" />
+                    )}
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">
                     Meu Perfil
@@ -167,9 +178,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden sm:flex lg:hidden items-center gap-2">
             <button
               onClick={onProfileClick}
-              className="p-2 bg-zinc-100 text-zinc-600 rounded-xl"
+              className="p-2 bg-zinc-100 text-zinc-600 rounded-xl relative group"
             >
-              <User className="w-5 h-5" />
+              <User className="w-5 h-5 group-hover:text-purple-600 transition-colors" />
+              {supabaseStatus === 'connected' && (
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+              )}
+              {supabaseStatus === 'connecting' && (
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-white animate-bounce" />
+              )}
+              {supabaseStatus === 'error' && (
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+              )}
             </button>
           </div>
 
@@ -243,10 +263,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                         onProfileClick();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full py-3 bg-zinc-100 text-zinc-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-zinc-100 text-zinc-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 relative"
                     >
                       <User className="w-4 h-4" />
                       Meu Perfil
+                      {supabaseStatus === 'connected' && (
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+                      )}
+                      {supabaseStatus === 'connecting' && (
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full border-2 border-white animate-bounce" />
+                      )}
+                      {supabaseStatus === 'error' && (
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                      )}
                     </button>
                   </>
                 )}

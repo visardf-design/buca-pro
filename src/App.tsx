@@ -24,11 +24,8 @@ import { CATEGORIES, INITIAL_APP_SETTINGS } from './constants';
 import { matchesSearch } from './services/searchService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, User, Star, Shield, MapPin, X, ArrowRight, RefreshCw } from 'lucide-react';
-import { auth, db } from './firebase';
 import { supabase } from './supabase';
 import { supabaseService } from './services/supabaseService';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, onSnapshot, setDoc, query, orderBy, getDoc, getDocFromServer, deleteDoc } from 'firebase/firestore';
 import { seedDatabase } from './services/seedService';
 
 const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
@@ -56,6 +53,7 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminPasswordModalOpen, setIsAdminPasswordModalOpen] = useState(false);
+  const [supabaseStatus, setSupabaseStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminPasswordError, setAdminPasswordError] = useState(false);
 
@@ -75,139 +73,75 @@ export default function App() {
     console.error('Firestore Error:', JSON.stringify(errInfo, null, 2));
   };
 
-  // Test connection to Firestore (only if not using Supabase)
+  // Test connection to Supabase
   useEffect(() => {
-    if (USE_SUPABASE) return;
     async function testConnection() {
       try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
+        const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+        if (error) throw error;
+        setSupabaseStatus('connected');
       } catch (error) {
-        if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration.");
-        }
+        console.error("Connection error:", error);
+        setSupabaseStatus('error');
       }
     }
     testConnection();
   }, []);
 
-  // Sync Logic (Firebase or Supabase)
+  // Sync Logic (Supabase Only)
   useEffect(() => {
-    if (USE_SUPABASE) {
-      // Supabase Auth
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
-          const profile = await supabaseService.getProfile(session.user.id);
-          if (profile) {
-            setCurrentUser(profile);
-            setIsLoggedIn(true);
-          } else {
-            setIsLoggedIn(false);
-            setCurrentUser(null);
-          }
+    // Supabase Auth
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await supabaseService.getProfile(session.user.id);
+        if (profile) {
+          setCurrentUser(profile);
+          setIsLoggedIn(true);
         } else {
           setIsLoggedIn(false);
           setCurrentUser(null);
         }
-        setIsAuthReady(true);
-      });
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+      setIsAuthReady(true);
+    });
 
-      // Supabase Real-time (Simplified initial fetch)
-      const fetchInitialData = async () => {
-        const [initialAds, initialSettings, initialUsers] = await Promise.all([
-          supabaseService.getAds(),
-          supabaseService.getSettings(),
-          supabaseService.getProfiles()
-        ]);
-        setAds(initialAds);
-        setUsers(initialUsers);
-        if (initialSettings) setAppSettings(initialSettings);
-      };
-      
-      fetchInitialData();
+    // Supabase Real-time (Simplified initial fetch)
+    const fetchInitialData = async () => {
+      const [initialAds, initialSettings, initialUsers] = await Promise.all([
+        supabaseService.getAds(),
+        supabaseService.getSettings(),
+        supabaseService.getProfiles()
+      ]);
+      setAds(initialAds);
+      setUsers(initialUsers);
+      if (initialSettings) setAppSettings(initialSettings);
+    };
+    
+    fetchInitialData();
 
-      // Realtime listener for ads and profiles
-      const adsSubscription = supabase
-        .channel('public:ads')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, payload => {
-          fetchInitialData();
-        })
-        .subscribe();
-      
-      const profilesSubscription = supabase
-        .channel('public:profiles')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-          fetchInitialData();
-        })
-        .subscribe();
+    // Realtime listener for ads and profiles
+    const adsSubscription = supabase
+      .channel('public:ads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, payload => {
+        fetchInitialData();
+      })
+      .subscribe();
+    
+    const profilesSubscription = supabase
+      .channel('public:profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+        fetchInitialData();
+      })
+      .subscribe();
 
-      return () => {
-        adsSubscription.unsubscribe();
-        profilesSubscription.unsubscribe();
-      };
-    } else {
-      // Firebase Auth Listener
-      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            setCurrentUser(userDoc.data() as UserProfile);
-            setIsLoggedIn(true);
-          } else if (user.email === 'VISARDF@gmail.com') {
-            const bootstrapAdmin: UserProfile = {
-              uid: user.uid,
-              username: 'admin',
-              displayName: 'Administrador',
-              role: 'admin',
-              createdAt: Date.now(),
-              status: 'approved',
-              plan: 'premium',
-              rating: 5.0,
-              reviewCount: 0
-            };
-            setCurrentUser(bootstrapAdmin);
-            setIsLoggedIn(true);
-            setDoc(doc(db, 'users', user.uid), bootstrapAdmin).catch(err => 
-              handleFirestoreError(err, 'write', 'users/' + user.uid)
-            );
-          } else {
-            setIsLoggedIn(false);
-            setCurrentUser(null);
-          }
-        } else {
-          setIsLoggedIn(false);
-          setCurrentUser(null);
-        }
-        setIsAuthReady(true);
-      });
-
-      // Firebase Firestore Listeners
-      const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
-        if (snapshot.exists()) {
-          setAppSettings(snapshot.data() as AppSettings);
-        } else if (isLoggedIn && currentUser?.role === 'admin') {
-          setDoc(doc(db, 'settings', 'global'), INITIAL_APP_SETTINGS).catch(err => 
-            handleFirestoreError(err, 'write', 'settings/global')
-          );
-        }
-      });
-
-      const qAds = query(collection(db, 'ads'), orderBy('createdAt', 'desc'));
-      const unsubscribeAds = onSnapshot(qAds, (snapshot) => {
-        setAds(snapshot.docs.map(doc => doc.data() as Ad));
-      });
-
-      const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-        setUsers(snapshot.docs.map(doc => doc.data() as UserProfile));
-      });
-
-      return () => {
-        unsubscribeAuth();
-        unsubscribeSettings();
-        unsubscribeAds();
-        unsubscribeUsers();
-      };
-    }
-  }, [isLoggedIn, currentUser]);
+    return () => {
+      adsSubscription.unsubscribe();
+      profilesSubscription.unsubscribe();
+    };
+  }, [isLoggedIn]);
 
   // Seed Database
   useEffect(() => {
@@ -360,11 +294,7 @@ export default function App() {
     };
     
     try {
-      if (USE_SUPABASE) {
-        await supabaseService.createAd(newAd);
-      } else {
-        await setDoc(doc(db, 'ads', adId), newAd);
-      }
+      await supabaseService.createAd(newAd);
       setIsPosting(false);
     } catch (error) {
       console.error("Error posting ad:", error);
@@ -392,20 +322,16 @@ export default function App() {
     };
 
     try {
-      if (USE_SUPABASE) {
-        await supabase.from('reviews').insert({
-          id: reviewId,
-          ad_id: newReview.adId,
-          reviewer_id: newReview.reviewerId,
-          reviewer_name: newReview.reviewerName,
-          target_user_id: newReview.targetUserId,
-          rating: newReview.rating,
-          comment: newReview.comment,
-          created_at: new Date(newReview.createdAt).toISOString()
-        });
-      } else {
-        await setDoc(doc(db, 'reviews', reviewId), newReview);
-      }
+      await supabase.from('reviews').insert({
+        id: reviewId,
+        ad_id: newReview.adId,
+        reviewer_id: newReview.reviewerId,
+        reviewer_name: newReview.reviewerName,
+        target_user_id: newReview.targetUserId,
+        rating: newReview.rating,
+        comment: newReview.comment,
+        created_at: new Date(newReview.createdAt).toISOString()
+      });
       setIsReviewing(null);
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -535,6 +461,7 @@ export default function App() {
         liveCounter={appSettings.showLiveCounter ? appSettings.liveCounterValue : undefined}
         onViewToggle={() => setViewMode(v => v === 'list' ? 'map' : 'list')}
         isLoggedIn={isLoggedIn}
+        supabaseStatus={supabaseStatus}
         onProfileClick={() => {
           if (!isLoggedIn) {
             setIsLoginModalOpen(true);
@@ -654,7 +581,7 @@ export default function App() {
                 onMessageClick={setActiveChat}
                 onUpdateAdStatus={async (adId, status) => {
                   try {
-                    await setDoc(doc(db, 'ads', adId), { status }, { merge: true });
+                    await supabase.from('ads').update({ status }).eq('id', adId);
                   } catch (error) {
                     console.error("Error updating ad status:", error);
                   }
@@ -662,7 +589,7 @@ export default function App() {
                 onUpdateProfile={async (updates) => {
                   if (!currentUser) return;
                   try {
-                    await setDoc(doc(db, 'users', currentUser.uid), updates, { merge: true });
+                    await supabaseService.updateProfile({ ...currentUser, ...updates });
                   } catch (error) {
                     console.error("Error updating profile:", error);
                   }
