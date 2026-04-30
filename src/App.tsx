@@ -19,6 +19,7 @@ import { GoogleAdSense } from './components/GoogleAdSense';
 import { SimulatedAd } from './components/SimulatedAd';
 import { OnboardingView } from './components/OnboardingView';
 import { LoginModal } from './components/LoginModal';
+import { SupabaseSetupModal } from './components/SupabaseConfigModal';
 import { Ad, Category, UserProfile, Review, AppSettings, UserFeature } from './types';
 import { CATEGORIES, INITIAL_APP_SETTINGS } from './constants';
 import { matchesSearch } from './services/searchService';
@@ -28,7 +29,17 @@ import { supabase } from './supabase';
 import { supabaseService } from './services/supabaseService';
 import { seedDatabase } from './services/seedService';
 
-const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL;
+const CATEGORIES_COLOR_MAP: Record<Category, string> = {
+  'Geral': 'zinc',
+  'Ajudante': 'amber',
+  'Doméstico': 'pink',
+  'Reparos': 'blue',
+  'Construção': 'orange',
+  'Técnico': 'indigo',
+  'Beleza': 'rose',
+  'Eventos': 'purple',
+  'Outros': 'zinc'
+};
 
 export default function App() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -53,29 +64,18 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminPasswordModalOpen, setIsAdminPasswordModalOpen] = useState(false);
+  const [isSupabaseSetupOpen, setIsSupabaseSetupOpen] = useState(false);
   const [supabaseStatus, setSupabaseStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminPasswordError, setAdminPasswordError] = useState(false);
 
-  // Firestore Error Handling
-  const handleFirestoreError = (error: unknown, operationType: string, path: string | null) => {
-    const errInfo = {
-      error: error instanceof Error ? error.message : String(error),
-      authInfo: {
-        userId: auth.currentUser?.uid,
-        email: auth.currentUser?.email,
-        emailVerified: auth.currentUser?.emailVerified,
-        isAnonymous: auth.currentUser?.isAnonymous,
-      },
-      operationType,
-      path
-    };
-    console.error('Firestore Error:', JSON.stringify(errInfo, null, 2));
-  };
-
   // Test connection to Supabase
   useEffect(() => {
     async function testConnection() {
+      if (!import.meta.env.VITE_SUPABASE_URL) {
+        setSupabaseStatus('error');
+        return;
+      }
       try {
         const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
         if (error) throw error;
@@ -149,10 +149,6 @@ export default function App() {
       seedDatabase();
     }
   }, [isLoggedIn, currentUser]);
-
-  const isFeatureBlocked = (feature: UserFeature) => {
-    return currentUser?.blockedFeatures?.includes(feature);
-  };
 
   const isCategoryBlocked = (category: Category) => {
     return currentUser?.blockedCategories?.includes(category);
@@ -452,6 +448,14 @@ export default function App() {
             }}
           />
         )}
+
+        <SupabaseSetupModal 
+          isOpen={isSupabaseSetupOpen}
+          onClose={() => setIsSupabaseSetupOpen(false)}
+          onSave={() => {
+            setIsSupabaseSetupOpen(false);
+          }}
+        />
       </AnimatePresence>
 
       <Navbar
@@ -463,6 +467,10 @@ export default function App() {
         isLoggedIn={isLoggedIn}
         supabaseStatus={supabaseStatus}
         onProfileClick={() => {
+          if (supabaseStatus === 'error') {
+            setIsSupabaseSetupOpen(true);
+            return;
+          }
           if (!isLoggedIn) {
             setIsLoginModalOpen(true);
             return;
@@ -756,11 +764,7 @@ export default function App() {
             settings={appSettings}
             onUpdateSettings={async (updates) => {
               try {
-                if (USE_SUPABASE) {
-                  await supabaseService.updateSettings(updates);
-                } else {
-                  await setDoc(doc(db, 'settings', 'global'), updates, { merge: true });
-                }
+                await supabaseService.updateSettings(updates);
               } catch (error) {
                 console.error("Error updating settings:", error);
               }
@@ -768,11 +772,7 @@ export default function App() {
             categories={categories}
             onUpdateCategories={async (newCategories) => {
               try {
-                if (USE_SUPABASE) {
-                  await supabase.from('settings').upsert({ id: 'categories', data: JSON.stringify(newCategories) });
-                } else {
-                  await setDoc(doc(db, 'settings', 'categories'), { list: newCategories });
-                }
+                await supabase.from('settings').upsert({ id: 'categories', data: JSON.stringify(newCategories) });
                 setCategories(newCategories);
               } catch (error) {
                 console.error("Error updating categories:", error);
@@ -781,14 +781,8 @@ export default function App() {
             users={users}
             onUpdateUsers={async (updatedUsers) => {
               try {
-                if (USE_SUPABASE) {
-                  for (const user of updatedUsers) {
-                    await supabaseService.updateProfile(user);
-                  }
-                } else {
-                  for (const user of updatedUsers) {
-                    await setDoc(doc(db, 'users', user.uid), user);
-                  }
+                for (const user of updatedUsers) {
+                  await supabaseService.updateProfile(user);
                 }
               } catch (error) {
                 console.error("Error updating users:", error);
@@ -796,19 +790,7 @@ export default function App() {
             }}
             onDeleteUser={async (uid) => {
               try {
-                if (USE_SUPABASE) {
-                  await supabase.from('profiles').delete().eq('id', uid);
-                } else {
-                  await deleteDoc(doc(db, 'users', uid));
-                  const userAds = ads.filter(ad => ad.sellerId === uid);
-                  for (const ad of userAds) {
-                    await deleteDoc(doc(db, 'ads', ad.id));
-                  }
-                  const userReviews = reviews.filter(rev => rev.reviewerId === uid || rev.targetUserId === uid);
-                  for (const rev of userReviews) {
-                    await deleteDoc(doc(db, 'reviews', rev.id));
-                  }
-                }
+                await supabase.from('profiles').delete().eq('id', uid);
               } catch (error) {
                 console.error("Error deleting user and related data:", error);
               }
