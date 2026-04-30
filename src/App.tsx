@@ -575,43 +575,6 @@ export default function App() {
         </div>
       )}
 
-      {appSettings.globalAlert && (
-        <div 
-          className="text-white py-2 px-4 text-center text-sm font-bold animate-pulse"
-          style={{ backgroundColor: 'var(--primary-color)' }}
-        >
-          {appSettings.globalAlert}
-        </div>
-      )}
-      
-      {/* Registration & Ad Banner */}
-      <div className="bg-zinc-900 text-white overflow-hidden relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between px-4 py-1.5 gap-4">
-          <div className="flex items-center gap-4 flex-1 w-full overflow-hidden">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter text-purple-400 shrink-0">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-              </span>
-              Publicidade
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="animate-marquee whitespace-nowrap flex items-center gap-8">
-                <SimulatedAd brand="casa-do-construtor" />
-                <SimulatedAd brand="campeao-da-construcao" />
-                <SimulatedAd brand="castelo-forte" />
-                <SimulatedAd brand="casa-do-construtor" />
-                <SimulatedAd brand="campeao-da-construcao" />
-                <SimulatedAd brand="castelo-forte" />
-              </div>
-            </div>
-          </div>
-
-
-        </div>
-      </div>
-
       {/* Professional Call to Action Banner */}
       <div className="bg-white border-b border-zinc-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex flex-row items-center justify-center gap-3 sm:gap-8">
