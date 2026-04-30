@@ -203,12 +203,22 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto pt-4 md:pt-12">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto pt-4 md:pt-12">
+              {isOwnProfile && (
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-zinc-800 transition-all shadow-lg active:scale-95"
+                >
+                  <Edit3 className="w-4 h-4 sm:w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">Editar Perfil</span>
+                </button>
+              )}
+              
               <button 
                 onClick={() => onMessageClick(user)}
-                className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 active:scale-95"
+                className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-purple-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 active:scale-95"
               >
-                <MessageSquare className="w-5 h-5 shrink-0" />
+                <MessageSquare className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                 <span className="whitespace-nowrap">Chat Pro</span>
               </button>
               
@@ -217,9 +227,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   href={`https://wa.me/${user.whatsapp.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-emerald-500 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                  className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-emerald-500 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
                 >
-                  <MessageCircle className="w-5 h-5 shrink-0" />
+                  <MessageCircle className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                   <span className="whitespace-nowrap">WhatsApp 1</span>
                 </a>
               )}
@@ -229,9 +239,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   href={`https://wa.me/${user.whatsapp2.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                  className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
                 >
-                  <MessageCircle className="w-5 h-5 shrink-0" />
+                  <MessageCircle className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                   <span className="whitespace-nowrap">WhatsApp 2</span>
                 </a>
               )}
@@ -239,9 +249,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               {user.phone && (
                 <a 
                   href={`tel:${user.phone.replace(/\D/g, '')}`}
-                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-white border-2 border-zinc-100 text-zinc-900 px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
+                  className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-white border border-zinc-200 text-zinc-900 px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
                 >
-                  <Phone className="w-5 h-5 shrink-0" />
+                  <Phone className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                   <span className="whitespace-nowrap">Ligar 1</span>
                 </a>
               )}
@@ -249,9 +259,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               {user.phone2 && (
                 <a 
                   href={`tel:${user.phone2.replace(/\D/g, '')}`}
-                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-white border-2 border-zinc-100 text-zinc-900 px-4 py-3.5 rounded-2xl font-black text-xs sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
+                  className="flex-1 xs:flex-none flex items-center justify-center gap-2 bg-white border border-zinc-200 text-zinc-900 px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm hover:bg-zinc-50 transition-all active:scale-95"
                 >
-                  <Phone className="w-5 h-5 shrink-0" />
+                  <Phone className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                   <span className="whitespace-nowrap">Ligar 2</span>
                 </a>
               )}
@@ -261,11 +271,25 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   href={`https://instagram.com/${user.instagram}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-3 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 text-white rounded-2xl hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-orange-100"
+                  className="p-2 sm:p-3 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 text-white rounded-xl sm:rounded-2xl hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-orange-100"
                   title="Instagram"
                 >
-                  <Instagram className="w-5 h-5" />
+                  <Instagram className="w-4 h-4 sm:w-5 h-5" />
                 </a>
+              )}
+
+              {isOwnProfile && (
+                <button 
+                  onClick={async () => {
+                    const { supabase } = await import('../supabase');
+                    await supabase.auth.signOut();
+                    window.location.reload();
+                  }}
+                  className="p-2 sm:p-3 bg-red-50 text-red-600 rounded-xl sm:rounded-2xl hover:bg-red-100 transition-all active:scale-95 border border-red-100"
+                  title="Sair da Conta"
+                >
+                  <EyeOff className="w-4 h-4 sm:w-5 h-5" />
+                </button>
               )}
             </div>
           </div>

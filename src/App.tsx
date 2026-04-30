@@ -25,6 +25,7 @@ import { CATEGORIES, INITIAL_APP_SETTINGS } from './constants';
 import { matchesSearch } from './services/searchService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, User, Star, Shield, MapPin, X, ArrowRight, RefreshCw } from 'lucide-react';
+import { cn } from './lib/utils';
 import { supabase } from './supabase';
 import { supabaseService } from './services/supabaseService';
 import { seedDatabase } from './services/seedService';
@@ -59,6 +60,7 @@ export default function App() {
   const [categories, setCategories] = useState<{ label: Category; icon: any }[]>(CATEGORIES);
   const [isReviewing, setIsReviewing] = useState<{ adTitle: string; sellerName: string; adId: string } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -88,6 +90,13 @@ export default function App() {
     testConnection();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAuthReady(true);
+    }, 5000); // Fail-safe: show app after 5 seconds even if auth is not ready
+    return () => clearTimeout(timer);
+  }, []);
+
   // Sync Logic (Supabase Only)
   useEffect(() => {
     // Supabase Auth
@@ -99,8 +108,8 @@ export default function App() {
         if (profile) {
           setCurrentUser(profile);
         } else {
-          // New user from manual login or first time - create a placeholder
-          setCurrentUser({
+          // New user from manual login or first time - create and SAVE a placeholder
+          const newProfile: UserProfile = {
             uid: session.user.id,
             username: session.user.email?.split('@')[0] || 'convidado',
             displayName: session.user.email?.split('@')[0] || 'Novo Profissional',
@@ -111,7 +120,14 @@ export default function App() {
             reviewCount: 0,
             status: 'pending',
             createdAt: Date.now(),
-          } as UserProfile);
+          };
+          try {
+            await supabaseService.updateProfile(newProfile);
+            setCurrentUser(newProfile);
+          } catch (err) {
+            console.error("Error creating initial profile:", err);
+            setCurrentUser(newProfile); // Set locally anyway
+          }
         }
       } else {
         setIsLoggedIn(false);
@@ -180,6 +196,10 @@ export default function App() {
     return currentUser?.blockedCategories?.includes(category);
   };
 
+  const isFeatureBlocked = (feature: UserFeature) => {
+    return currentUser?.blockedFeatures?.includes(feature);
+  };
+
   useEffect(() => {
     const handleOpenChat = (e: any) => {
       if (!isLoggedIn) {
@@ -234,7 +254,7 @@ export default function App() {
 
       // Search & Filters
       const isSearchMatch = matchesSearch(searchQuery, ad);
-      const matchesLocation = !lQuery || ad.location.address.toLowerCase().includes(lQuery);
+      const matchesLocation = !lQuery || (ad.location?.address?.toLowerCase().includes(lQuery) ?? false);
       const matchesCategory = !selectedCategory || ad.category === selectedCategory;
       
       return isSearchMatch && matchesLocation && matchesCategory;
@@ -242,9 +262,9 @@ export default function App() {
   }, [ads, users, selectedCategory, searchQuery, locationQuery, currentUser]);
 
   const filteredUsers = useMemo(() => {
-    if (currentUser?.role === 'admin') return users;
-    return users.filter(u => u.status === 'approved');
-  }, [users, currentUser]);
+    // Show all users in the Community view so the user can see their profile even if pending
+    return users || [];
+  }, [users]);
 
   const handleSellerClick = (sellerId: string) => {
     const seller = filteredUsers.find(p => p.uid === sellerId);
@@ -686,24 +706,33 @@ export default function App() {
 
               {/* Live Stats Section */}
               <div className="max-w-7xl mx-auto px-4 pt-2">
-                <div className="bg-zinc-900 rounded-full py-1.5 px-6 relative overflow-hidden shadow-md border border-white/5">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 blur-[40px] rounded-full -mr-12 -mt-12" />
+                <button 
+                  onClick={() => setShowCommunity(!showCommunity)}
+                  className={cn(
+                    "w-full rounded-full py-2 px-6 relative overflow-hidden shadow-md border transition-all active:scale-[0.98] group",
+                    showCommunity ? "bg-purple-600 border-purple-500" : "bg-zinc-900 border-white/5"
+                  )}
+                >
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/20 blur-[40px] rounded-full -mr-12 -mt-12" />
                   
                   <div className="relative flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-[10px] font-black text-white tracking-tight uppercase">
-                        Comunidade <span className="text-purple-400">Ativa</span>
+                      <h2 className={cn(
+                        "text-[10px] sm:text-xs font-black tracking-tight uppercase",
+                        showCommunity ? "text-white" : "text-white"
+                      )}>
+                        {showCommunity ? "Ver Marketplace" : "Comunidade"} <span className={showCommunity ? "text-purple-200" : "text-purple-400"}>Ativa</span>
                       </h2>
                     </div>
 
-                    <div className="flex gap-4 sm:gap-6">
+                    <div className="flex gap-3 sm:gap-6">
                       <div className="flex items-center gap-2">
                         <div className="text-xs font-black text-white tabular-nums">
                           {appSettings.liveCounterValue}
                         </div>
                         <div className="flex items-center gap-1">
-                          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[6px] font-black text-emerald-400 uppercase tracking-widest">Online</span>
+                          <div className={cn("w-1 h-1 rounded-full animate-pulse", showCommunity ? "bg-white" : "bg-emerald-500")} />
+                          <span className={cn("text-[6px] font-black uppercase tracking-widest", showCommunity ? "text-white/80" : "text-emerald-400")}>Online</span>
                         </div>
                       </div>
                       
@@ -713,7 +742,7 @@ export default function App() {
                         <div className="text-xs font-black text-white tabular-nums">
                           {filteredAds.length}+
                         </div>
-                        <div className="text-[6px] font-black text-zinc-500 uppercase tracking-widest">Anúncios</div>
+                        <div className={cn("text-[6px] font-black uppercase tracking-widest", showCommunity ? "text-white/60" : "text-zinc-500")}>Anúncios</div>
                       </div>
 
                       <div className="w-[1px] h-3 bg-white/10 self-center" />
@@ -722,15 +751,50 @@ export default function App() {
                         <div className="text-xs font-black text-white tabular-nums">
                           {filteredUsers.length}+
                         </div>
-                        <div className="text-[6px] font-black text-zinc-500 uppercase tracking-widest">Projetos</div>
+                        <div className={cn("text-[6px] font-black uppercase tracking-widest", showCommunity ? "text-white/60" : "text-zinc-500")}>Projetos</div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
 
               <div className="p-4">
-                {viewMode === 'list' ? (
+                {showCommunity ? (
+                  <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 lg:gap-6">
+                    {filteredUsers.map(user => (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        key={user.uid}
+                        onClick={() => setViewingProfile(user)}
+                        className="bg-white p-2 sm:p-4 rounded-xl sm:rounded-[2rem] border border-zinc-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left flex flex-col items-center sm:items-start"
+                      >
+                        <div className="w-full aspect-square rounded-lg sm:rounded-[1.5rem] overflow-hidden mb-2 sm:mb-4 bg-zinc-50 relative">
+                          {user.photoURL ? (
+                            <img src={user.photoURL} alt={user.displayName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <User className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-200" />
+                            </div>
+                          )}
+                          <div className="absolute top-1 right-1 sm:top-3 sm:right-3 w-1.5 h-1.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
+                        </div>
+                        <div className="w-full text-center sm:text-left px-1 sm:px-0">
+                          <h4 className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight text-zinc-900 truncate leading-tight">{user.displayName}</h4>
+                          <p className="text-[7px] sm:text-[9px] font-black text-purple-600 uppercase tracking-widest truncate mt-0.5">{user.category || 'Profissional'}</p>
+                          <div className="flex items-center justify-center sm:justify-start gap-1 mt-1 sm:mt-2">
+                            <div className="flex -space-x-1">
+                              {[...Array(3)].map((_, i) => (
+                                <Star key={i} className="w-2 h-2 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                              ))}
+                            </div>
+                            <span className="text-[7px] sm:text-[10px] font-black text-zinc-400 ml-0.5">{user.rating.toFixed(1)}</span>
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                ) : viewMode === 'list' ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {filteredAds.map(ad => (
                       <AdCard key={ad.id} ad={ad} onClick={setSelectedAd} />

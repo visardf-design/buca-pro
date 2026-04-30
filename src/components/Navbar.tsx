@@ -113,38 +113,37 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Actions - Desktop & Mobile Toggle */}
-        <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-          <div className="hidden lg:flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-4">
             <button
               onClick={onViewToggle}
-              className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-600"
+              className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-600 hidden xs:block"
               title={viewMode === 'list' ? 'Ver no Mapa' : 'Ver em Lista'}
             >
               {viewMode === 'list' ? <MapIcon className="w-5 h-5" /> : <List className="w-5 h-5" />}
             </button>
             
-            {/* Post button removed per user request */}
-
             {!isLoggedIn ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={onProfileClick}
-                  className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-900 px-3 py-2"
+                  className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-900 px-2 sm:px-3 py-2 flex items-center gap-1"
                 >
-                  Entrar
+                  <User className="w-4 h-4 xs:hidden" />
+                  <span className="hidden xs:inline">Entrar</span>
                 </button>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('openRegistration'))}
-                  className="bg-zinc-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl active:scale-95"
+                  className="bg-zinc-900 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-2xl font-black text-[9px] sm:text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl active:scale-95 whitespace-nowrap"
                 >
                   Cadastrar
                 </button>
               </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={onAdminClick}
-                  className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
+                  className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600 hidden md:block"
                   title="Painel de Manutenção"
                 >
                   <Shield className="w-5 h-5" />
@@ -152,53 +151,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={onProfileClick}
-                  className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-xl transition-all active:scale-95 group"
+                  className="flex items-center gap-2 p-1 sm:p-2 bg-zinc-900 text-white rounded-lg sm:rounded-xl transition-all active:scale-95 group shadow-lg shadow-zinc-200"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center relative">
-                    <User className="w-5 h-5 text-zinc-600 group-hover:text-purple-600 transition-colors" />
+                  <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center relative">
+                    <User className="w-3.5 h-3.5 sm:w-6 h-6 text-white/90 group-hover:text-white transition-colors" />
                     {supabaseStatus === 'connected' && (
-                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white animate-pulse shadow-sm" title="Supabase Conectado" />
-                    )}
-                    {supabaseStatus === 'connecting' && (
-                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-white animate-bounce" title="Conectando ao Supabase..." />
-                    )}
-                    {supabaseStatus === 'error' && (
-                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" title="Erro na conexão Supabase" />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-3.5 sm:h-3.5 bg-green-500 rounded-full border-2 border-zinc-900 animate-pulse shadow-sm" title="Supabase Conectado" />
                     )}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">
+                  <span className="text-[8px] sm:text-[11px] font-black uppercase tracking-widest mr-1 sm:mr-3 hidden xs:inline">
                     Meu Perfil
                   </span>
                 </button>
-              </>
+              </div>
             )}
-          </div>
-
-          {/* Medium screen actions (Tablets) */}
-          <div className="hidden sm:flex lg:hidden items-center gap-2">
-            <button
-              onClick={onProfileClick}
-              className="p-2 bg-zinc-100 text-zinc-600 rounded-xl relative group"
-            >
-              <User className="w-5 h-5 group-hover:text-purple-600 transition-colors" />
-              {supabaseStatus === 'connected' && (
-                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white animate-pulse" />
-              )}
-              {supabaseStatus === 'connecting' && (
-                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-white animate-bounce" />
-              )}
-              {supabaseStatus === 'error' && (
-                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-              )}
-            </button>
           </div>
 
           {/* Mobile Menu Toggle */}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-1.5 sm:p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"
+            className="p-1.5 sm:p-2 hover:bg-zinc-100 rounded-lg text-zinc-600 sm:hidden"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5 sm:w-6 h-6" /> : <Menu className="w-5 h-5 sm:w-6 h-6" />}
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>

@@ -16,8 +16,19 @@ export const supabaseService = {
     }
     
     // Proper mapping from DB snake_case to Frontend camelCase
+    let parsedLocation = data.location;
+    if (typeof data.location === 'string') {
+      try {
+        parsedLocation = JSON.parse(data.location);
+      } catch (e) {
+        console.error("Error parsing profile location:", e);
+        parsedLocation = { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' };
+      }
+    }
+
     return {
       ...data,
+      location: parsedLocation || { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' },
       uid: data.id,
       displayName: data.display_name,
       photoURL: data.photo_url,
@@ -78,14 +89,27 @@ export const supabaseService = {
       console.error('Error fetching ads:', error);
       return [];
     }
-    return data.map(ad => ({
-      ...ad,
-      sellerId: ad.seller_id,
-      sellerName: ad.seller_name,
-      sellerPhoto: ad.seller_photo,
-      imageUrl: ad.image_url,
-      createdAt: new Date(ad.created_at).getTime()
-    })) as unknown as Ad[];
+    return data.map(ad => {
+      let parsedLocation = ad.location;
+      if (typeof ad.location === 'string') {
+        try {
+          parsedLocation = JSON.parse(ad.location);
+        } catch (e) {
+          console.error("Error parsing ad location:", e);
+          parsedLocation = { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' };
+        }
+      }
+      
+      return {
+        ...ad,
+        location: parsedLocation || { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' },
+        sellerId: ad.seller_id,
+        sellerName: ad.seller_name,
+        sellerPhoto: ad.seller_photo,
+        imageUrl: ad.image_url,
+        createdAt: new Date(ad.created_at).getTime()
+      };
+    }) as unknown as Ad[];
   },
 
   async createAd(ad: Ad): Promise<void> {
@@ -159,17 +183,30 @@ export const supabaseService = {
       console.error('Error fetching profiles:', error);
       return [];
     }
-    return data.map(p => ({
-      ...p,
-      uid: p.id,
-      displayName: p.display_name,
-      photoURL: p.photo_url,
-      clientType: p.client_type,
-      helperSpecialty: p.helper_specialty,
-      portfolioPhotos: p.portfolio_photos,
-      phone2: p.phone2,
-      whatsapp2: p.whatsapp2,
-      createdAt: new Date(p.created_at).getTime()
-    })) as unknown as UserProfile[];
+    return data.map(p => {
+      let parsedLocation = p.location;
+      if (typeof p.location === 'string') {
+        try {
+          parsedLocation = JSON.parse(p.location);
+        } catch (e) {
+          console.error("Error parsing profile location:", e);
+          parsedLocation = { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' };
+        }
+      }
+
+      return {
+        ...p,
+        location: parsedLocation || { lat: -23.5505, lng: -46.6333, address: 'Localização Desconhecida' },
+        uid: p.id,
+        displayName: p.display_name,
+        photoURL: p.photo_url,
+        clientType: p.client_type,
+        helperSpecialty: p.helper_specialty,
+        portfolioPhotos: p.portfolio_photos,
+        phone2: p.phone2,
+        whatsapp2: p.whatsapp2,
+        createdAt: new Date(p.created_at).getTime()
+      };
+    }) as unknown as UserProfile[];
   }
 };
