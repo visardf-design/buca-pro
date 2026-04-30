@@ -56,7 +56,15 @@ export const supabaseService = {
         updated_at: new Date().toISOString()
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('ERRO AO ATUALIZAR PERFIL NO SUPABASE:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        uid: profile.uid
+      });
+      throw error;
+    }
   },
 
   // Ads

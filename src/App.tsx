@@ -92,14 +92,26 @@ export default function App() {
   useEffect(() => {
     // Supabase Auth
     supabase.auth.onAuthStateChange(async (event, session) => {
+      setIsAuthReady(false);
       if (session?.user) {
+        setIsLoggedIn(true);
         const profile = await supabaseService.getProfile(session.user.id);
         if (profile) {
           setCurrentUser(profile);
-          setIsLoggedIn(true);
         } else {
-          setIsLoggedIn(false);
-          setCurrentUser(null);
+          // New user from manual login or first time - create a placeholder
+          setCurrentUser({
+            uid: session.user.id,
+            username: session.user.email?.split('@')[0] || 'convidado',
+            displayName: session.user.email?.split('@')[0] || 'Novo Profissional',
+            role: 'professional',
+            photoURL: '',
+            description: '',
+            rating: 5,
+            reviewCount: 0,
+            status: 'pending',
+            createdAt: Date.now(),
+          } as UserProfile);
         }
       } else {
         setIsLoggedIn(false);
