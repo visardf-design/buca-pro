@@ -122,14 +122,28 @@ export default function App() {
 
     // Supabase Real-time (Simplified initial fetch)
     const fetchInitialData = async () => {
-      const [initialAds, initialSettings, initialUsers] = await Promise.all([
-        supabaseService.getAds(),
-        supabaseService.getSettings(),
-        supabaseService.getProfiles()
-      ]);
-      setAds(initialAds);
-      setUsers(initialUsers);
-      if (initialSettings) setAppSettings(initialSettings);
+      try {
+        const [initialAds, initialSettings, initialUsers] = await Promise.all([
+          supabaseService.getAds(),
+          supabaseService.getSettings(),
+          supabaseService.getProfiles()
+        ]);
+        
+        // Use functional updates to ensure consistency and avoid duplicates
+        setAds(prev => {
+          const combined = [...initialAds];
+          return combined.filter((v, i, a) => v.id && a.findIndex(t => t.id === v.id) === i);
+        });
+        
+        setUsers(prev => {
+          const combined = [...initialUsers];
+          return combined.filter((v, i, a) => v.uid && a.findIndex(t => t.uid === v.uid) === i);
+        });
+
+        if (initialSettings) setAppSettings(initialSettings);
+      } catch (err) {
+        console.error("Critical error fetching initial data:", err);
+      }
     };
     
     fetchInitialData();
@@ -330,8 +344,7 @@ export default function App() {
     };
 
     try {
-      await supabase.from('reviews').insert({
-        id: reviewId,
+      const { error } = await supabase.from('reviews').insert({
         ad_id: newReview.adId,
         reviewer_id: newReview.reviewerId,
         reviewer_name: newReview.reviewerName,
@@ -340,6 +353,7 @@ export default function App() {
         comment: newReview.comment,
         created_at: new Date(newReview.createdAt).toISOString()
       });
+      if (error) throw error;
       setIsReviewing(null);
     } catch (error) {
       console.error("Error submitting review:", error);

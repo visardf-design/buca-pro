@@ -50,11 +50,11 @@ export const supabaseService = {
         whatsapp2: profile.whatsapp2,
         instagram: profile.instagram,
         portfolio_photos: profile.portfolioPhotos,
-        location: profile.location ? JSON.stringify(profile.location) : null,
+        location: profile.location ? (typeof profile.location === 'string' ? profile.location : JSON.stringify(profile.location)) : null,
         category: profile.category,
         helper_specialty: profile.helperSpecialty,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'id' });
 
     if (error) {
       console.error('ERRO AO ATUALIZAR PERFIL NO SUPABASE:', {
@@ -100,7 +100,8 @@ export const supabaseService = {
         seller_id: ad.sellerId,
         seller_name: ad.sellerName,
         seller_photo: ad.sellerPhoto,
-        status: ad.status
+        status: ad.status,
+        location: typeof ad.location === 'string' ? ad.location : JSON.stringify(ad.location)
       });
 
     if (error) throw error;
